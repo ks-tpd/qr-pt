@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QRコードスキャナー</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 15px;
+      margin: 0;
+      background-color: #f7f7f7;
+    }
+    h2 {
+      font-size: 1.2rem;
+      color: #333;
+    }
+    #reader {
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    #status {
+      margin-top: 15px;
+      font-weight: bold;
+      color: #333;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>QRコードをカメラにかざしてください</h2>
+  <div id="reader"></div>
+  <div id="status">カメラの起動を待っています...</div>
+
+  <script>
+    // AppSheetの連携設定
+    const APP_ID = "1f64a1ee-ac09-48a6-8d59-5df934b060d2";
+    const VIEW_NAME = "QRスキャン(スマホのみ)";
+    const COLUMN_NAME = "equipment_id";
+
+    let isScanned = false;
+
+    // 読み取り成功時の処理
+    function onScanSuccess(decodedText, decodedResult) {
+      if (isScanned) return;
+      isScanned = true;
+
+      document.getElementById('status').innerText = "読み取り完了！AppSheetへ移動します...";
+
+      // スキャン停止
+      html5QrCode.stop().then(() => {
+        redirectToAppSheet(decodedText);
+      }).catch(() => {
+        redirectToAppSheet(decodedText);
+      });
+    }
+
+    // AppSheetへのリダイレクト処理
+    function redirectToAppSheet(val) {
+      const defaults = encodeURIComponent(JSON.stringify({
+        [COLUMN_NAME]: val
+      }));
+      const encodedView = encodeURIComponent(VIEW_NAME);
+      const targetUrl = `https://www.appsheet.com/start/${APP_ID}#view=${encodedView}&defaults=${defaults}`;
+      
+      // AppSheetのページを開く
+      window.location.href = targetUrl;
+    }
+
+    // カメラの初期化と起動
+    const html5QrCode = new Html5Qrcode("reader");
+
+    html5QrCode.start(
+      { facingMode: "environment" }, // 背面カメラを優先（PCは内蔵カメラ）
+      {
+        fps: 10,
+        qrbox: { width: 250, height: 250 }
+      },
+      onScanSuccess
+    ).catch(err => {
+      document.getElementById('status').innerText = "カメラを起動できませんでした:\n" + err;
+    });
+  </script>
+
+</body>
+</html>
